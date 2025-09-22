@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chatbot Admin Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --background-color: #121212;
+            --card-background: #1e1e1e;
+            --text-color: #e0e0e0;
+            --subtle-text: #888888;
+            --border-color: #333333;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+        .card {
+            background-color: var(--card-background);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+        }
+        h1 {
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 40px;
+        }
+        h1, h2, h3 {
+            color: var(--text-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-top: 0;
+        }
+        input[type="text"], textarea {
+            width: calc(100% - 26px);
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 16px;
+            font-family: 'Inter', sans-serif;
+            background-color: #2c2c2c;
+            color: var(--text-color);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        input::placeholder, textarea::placeholder {
+            color: var(--subtle-text);
+        }
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+        }
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #5a9ee6;
+        }
+        #link-display {
+            margin-top: 20px;
+            background-color: #2c2c2c;
+            padding: 15px;
+            border-radius: 8px;
+            word-wrap: break-word;
+            border: 1px solid var(--border-color);
+        }
+        #link-display a {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        #status {
+            font-style: italic;
+            color: var(--subtle-text);
+            text-align: center;
+            height: 20px;
+        }
+        .bot-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 5px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+        }
+        .bot-list-item:hover {
+            background-color: #2c2c2c;
+        }
+        .bot-list-item:last-child {
+            border-bottom: none;
+        }
+        .manage-button {
+            background-color: #28a745;
+        }
+        .manage-button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Vakta Chatbot Dashboard</h1>
+
+    <div id="initial-view">
+        <div class="card" id="create-section">
+            <h2>Create New Chatbot</h2>
+            <input type="text" id="bot-name" placeholder="e.g., 'Company FAQ Bot'">
+            <button onclick="createChatbot()">Create Chatbot</button>
+        </div>
+
+        <div class="card" id="list-section">
+            <h2>My Chatbots</h2>
+            <div id="chatbot-list">
+                <p>Loading chatbots...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" id="ingest-section" style="display: none;">
+        <h2>Manage Chatbot</h2>
+        <button onclick="startOver()" style="background-color: #6c757d; float: right;">&larr; Back to List</button>
+        <p>You are managing: <strong id="current-bot-name" style="color: var(--primary-color);"></strong></p>
+        <div id="link-display">
+            <p><strong>Shareable Chat Link:</strong></p>
+            <a href="" id="chat-link" target="_blank"></a>
+        </div>
+        <hr style="margin: 25px 0; border: none; border-top: 1px solid var(--border-color);">
+        <h3>Teach Your Chatbot</h3>
+        <p>Add URLs (one per line) to give your bot knowledge.</p>
+        <textarea id="urls-to-ingest" rows="5" placeholder="https://example.com/about-us&#10;https://example.com/products"></textarea>
+        <button onclick="ingestUrls()">Ingest URLs</button>
+    </div>
+
+    <p id="status"></p>
+</div>
+
+<script>
+    // All JavaScript logic remains the same
+    let currentChatbot = null;
+    window.onload=()=>{const e=sessionStorage.getItem("currentVaktaBot");e?(currentChatbot=JSON.parse(e),showManagementUI(currentChatbot)):loadAllChatbots()};async function loadAllChatbots(){const e=document.getElementById("chatbot-list");e.innerHTML="<p>Loading chatbots...</p>";const t=await fetch("/api/chatbots");if(t.ok){const o=await t.json();e.innerHTML="",0===o.length?e.innerHTML="<p>You haven't created any chatbots yet.</p>":o.forEach((t=>{const o=document.createElement("div");o.className="bot-list-item",o.innerHTML=`\n                        <span><strong>${t.name}</strong><br><small style="color: var(--subtle-text);">ID: ${t.id}</small></span>\n                        <button class="manage-button" onclick="manageBot('${t.id}', '${t.name}')">Manage</button>\n                    `,e.appendChild(o)}))}else e.innerHTML="<p>Could not load chatbots.</p>"}function manageBot(e,t){currentChatbot={id:e,name:t},sessionStorage.setItem("currentVaktaBot",JSON.stringify(currentChatbot)),showManagementUI(currentChatbot)}function showManagementUI(e){const t=`${window.location.origin}/chat/${e.id}?name=${encodeURIComponent(e.name)}`,o=document.getElementById("chat-link");o.href=t,o.innerText=t,document.getElementById("ingest-section").style.display="block",document.getElementById("current-bot-name").innerText=e.name,document.getElementById("initial-view").style.display="none"}function startOver(){sessionStorage.removeItem("currentVaktaBot"),window.location.reload()}function updateStatus(e){document.getElementById("status").innerText=e}async function createChatbot(){const e=document.getElementById("bot-name").value;if(!e)return void alert("Please enter a name.");updateStatus("Creating chatbot...");const t=await fetch("/api/chatbots",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:e})});t.ok?(currentChatbot=await t.json(),sessionStorage.setItem("currentVaktaBot",JSON.stringify(currentChatbot)),showManagementUI(currentChatbot),updateStatus("Successfully created chatbot!")):updateStatus("Error creating chatbot. Check application logs for details.")}async function ingestUrls(){if(!currentChatbot)return void alert("No active chatbot selected.");const e=document.getElementById("urls-to-ingest").value;if(!e)return void alert("Please enter at least one URL.");const t=e.split("\n").filter((e=>""!==e.trim()));updateStatus(`Starting ingestion for "${currentChatbot.name}"...`);const o=await fetch(`/api/chatbots/${currentChatbot.id}/ingest-urls`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(t)});updateStatus(o.ok?"URL ingestion started in the background! Check your application console for progress.":"Error starting ingestion. Check application logs for details."),o.ok&&(document.getElementById("urls-to-ingest").value="")}
+</script>
+</body>
+</html>

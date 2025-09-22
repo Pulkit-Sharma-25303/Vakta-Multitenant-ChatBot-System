@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vakta Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* This is the dark theme CSS from our previous step */
+        :root {
+            --primary-color: #4a90e2;
+            --background-color: #121212;
+            --card-background: #1e1e1e;
+            --text-color: #e0e0e0;
+            --bot-message-bg: #333333;
+            --border-color: #333333;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+        .card {
+            background-color: var(--card-background);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 10px 20px 20px 20px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            height: 85vh;
+        }
+        h2 {
+            font-weight: 700;
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            margin: 15px 0;
+        }
+        #chat-window {
+            flex-grow: 1;
+            padding: 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+        }
+        .user-message {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+        .bot-message {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+        .message span {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+        .bot-message span {
+            background-color: var(--bot-message-bg);
+            color: var(--text-color);
+        }
+        .chat-input-area {
+            display: flex;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+        input[type="text"] {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: 'Inter', sans-serif;
+            background-color: #2c2c2c;
+            color: var(--text-color);
+        }
+        input::placeholder { color: #888888; }
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card" id="chat-section">
+        <h2 id="chat-header">Loading...</h2>
+        <div id="chat-window"></div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Ask a question..." onkeydown="handleKey(event)">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let chatbotId = null;
+    let chatHistory = [];
+
+    window.onload = () => {
+        const pathParts = window.location.pathname.split('/');
+        chatbotId = pathParts[pathParts.length - 1];
+
+        // --- THIS IS THE FIX ---
+        // 1. Create a URLSearchParams object to easily read URL parameters.
+        const urlParams = new URLSearchParams(window.location.search);
+        // 2. Get the 'name' parameter directly from the URL.
+        const botName = urlParams.get('name');
+        // 3. We NO LONGER make a separate API call.
+        // --- END OF FIX ---
+
+        if (chatbotId && botName) {
+            document.getElementById('chat-header').innerText = `${botName}`;
+            loadChatHistory();
+        } else {
+            document.getElementById('chat-header').innerText = 'Chatbot not found';
+        }
+    };
+
+    async function sendMessage() {
+        const input = document.getElementById('chat-input');
+        const query = input.value;
+        if (!query || !chatbotId) return;
+
+        addMessage(query, 'user');
+        input.value = '';
+
+        const response = await fetch(`/api/chatbots/${chatbotId}/chat?query=${encodeURIComponent(query)}`);
+        const botResponse = await response.text();
+        addMessage(botResponse, 'bot');
+    }
+
+    // Chat history functions remain the same
+    function addMessage(text, sender) {
+        chatHistory.push({ text, sender });
+        saveChatHistory();
+        renderChat();
+    }
+    function saveChatHistory() {
+        sessionStorage.setItem(`chatHistory_${chatbotId}`, JSON.stringify(chatHistory));
+    }
+    function loadChatHistory() {
+        const savedHistory = sessionStorage.getItem(`chatHistory_${chatbotId}`);
+        if (savedHistory) {
+            chatHistory = JSON.parse(savedHistory);
+            renderChat();
+        }
+    }
+    function renderChat() {
+        const chatWindow = document.getElementById('chat-window');
+        chatWindow.innerHTML = '';
+        chatHistory.forEach(message => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${message.sender}-message`;
+            messageDiv.innerHTML = `<span>${message.text}</span>`;
+            chatWindow.appendChild(messageDiv);
+        });
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+    function handleKey(event) {
+        if (event.key === 'Enter') { sendMessage(); }
+    }
+</script>
+</body>
+</html>
