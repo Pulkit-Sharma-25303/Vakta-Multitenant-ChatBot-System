@@ -205,5 +205,3 @@ http://localhost:8080
 
 ***
 
-Would you like me to also structure this `README.md` with **badges (build, license, tech stack logos)** and a **project architecture diagram** for better GitHub presentation?
-
